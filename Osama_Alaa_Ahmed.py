@@ -40,7 +40,7 @@ if option=="conversion file to anther format":
             jsonfile = gpd.read_file(inputFile).to_crs('EPSG:3857')
             secondOption = st.selectbox(
             'please select the format?',
-            ('Shapefile', 'Geopakage', 'Geodatabase'))
+            ('Shapefile', 'Geopakage'))
             if secondOption=='Shapefile':
                     os.makedirs(f"{filename}-ShpFiles")
                     jsonfile.to_file(f"{filename}-ShpFiles/{filename}.shp")
@@ -61,21 +61,7 @@ if option=="conversion file to anther format":
                             file_name = f"{filename}.gpkg",
                             data = Geopakage
                         )
-                    os.remove(f"{filename}.gpkg")
-            elif secondOption=='Geodatabase':
-                    # to convert to geodata base once convert file to Geopackage then use ogr to convert shp to geodatabase
-                    jsonfile.to_file(f"{filename}.gpkg")
-                    subprocess.call(f"ogr2ogr {filename}.gdb {filename}.gpkg")
-                    shutil.make_archive(f"{filename}.gdb", "zip", f"{filename}.gdb")
-                    with open(f"{filename}.gdb.zip","rb") as Geodatabase:
-                        st.download_button(
-                            label = 'convert file to Geodatabase ',
-                            file_name = f"{filename}.gdb.zip",
-                            data = Geodatabase
-                        )
-                    shutil.rmtree(f"{filename}.gdb")         
-                    os.remove(f"{filename}.gpkg")
-                    os.remove(f"{filename}.gdb.zip")      
+                    os.remove(f"{filename}.gpkg")     
           
 elif option=="get the shortest route":
     #get the shortest route
