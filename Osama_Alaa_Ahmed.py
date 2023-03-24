@@ -73,9 +73,7 @@ if option=="conversion file to anther format":
                             file_name = f"{filename}.gdb.zip",
                             data = Geodatabase
                         )
-                    shutil.rmtree(f"{filename}.gdb")         
-                    os.remove(f"{filename}.gpkg")
-                    os.remove(f"{filename}.gdb.zip")      
+          
 elif option=="get the shortest route":
     #get the shortest route
     inputFile = st.file_uploader("upload Your Points",type="GeoJSON")
