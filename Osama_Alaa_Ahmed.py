@@ -9,6 +9,7 @@ import folium
 import json
 import streamlit.components.v1 as components
 import base64
+import sys
 
 def folium_static(map, width=700, height=500):
     """Display folium map in Streamlit app"""
@@ -86,7 +87,10 @@ elif option=="get the shortest route":
         allCoordForFeature=[]
         counterofpoint=0
         for feature in data ["features"]:
-            if feature['geometry']['type']=='Point':
+             if feature['geometry']['type']=='Polygon':
+                st.write("Please upload a file with type Point")
+                sys.exit(1)
+            elif feature['geometry']['type']=='Point':
                 cood=feature['geometry']['coordinates']
                 lat=cood[1]
                 long=cood[0]
