@@ -34,31 +34,47 @@ option = st.selectbox(
     ('conversion file to anther format', 'get the shortest route', 'downloading the intersection, union and erase between two layers','Risk assessment'))
 if option=="conversion file to anther format":
     inputFile = st.file_uploader("upload Your file that do you want to convert ",type="GeoJSON")
-    if inputFile:
-            jsonfile = gpd.read_file(inputFile)
-            st.write(jsonfile.head())
-            filename = st.text_input("Enter a name for the output file")
+    filename = st.text_input("Enter a name for the output file")
+    if inputFile and filename:
+            jsonfile = gpd.read_file(inputFile).to_crs('EPSG:3857')
             secondOption = st.selectbox(
             'please select the format?',
             ('Shapefile', 'Geopakage', 'Geodatabase'))
-            if secondOption=="Shapefile":
-                if st.button("Convert to Shapefile"):
-                    jsonfile.to_file(filename+".shp", driver ="ESRI Shapefile")
-                    st.success("Shapefile successfully created!")
-                    st.markdown(f"Download Shapefile: [Download]({filename}.zip)")
-            elif secondOption=="Geopakage":
-                if st.button("Convert to Geopakage"):
-                    jsonfile.to_file(filename+".gpkg", driver ="GPKG")
-                    st.success("GeoPackage successfully created!")
-                    st.markdown(f"Download Shapefile: [Download]({filename}.zip)")
-            elif secondOption=="Geodatabase":
-                if st.button("Convert to Geodatabase"):
-                    # to convert to geodata base once convert file to shpfile then use ogr to convert shp to geodatabase
-                    jsonfile.to_file(filename+".gpkg", driver ="GPKG")
-                    subprocess.call(f"ogr2ogr {filename}.gdb {filename}.gpkg")
+            if secondOption=='Shapefile':
+                    os.makedirs(f"{filename}-ShpFiles")
+                    jsonfile.to_file(f"{filename}-ShpFiles/{filename}.shp")
+                    shutil.make_archive(f"{filename}-ShpFiles", "zip", f"{filename}-ShpFiles")
+                    with open(f"{filename}-ShpFiles.zip", "rb") as shpFile:
+                        st.download_button(
+                            label = 'convert file to ShpFiles ',
+                            file_name = f"{filename}ShpFile.zip",
+                            data = shpFile                           
+                        )
+                    shutil.rmtree(f"{filename}-ShpFiles")
+                    os.remove(f"{filename}-ShpFiles.zip")
+            elif secondOption=='Geopakage':
+                    jsonfile.to_file(f"{filename}.gpkg")
+                    with open(f"{filename}.gpkg", "rb") as Geopakage:
+                        st.download_button(
+                            label = 'convert file to Geopackage ',
+                            file_name = f"{filename}.gpkg",
+                            data = Geopakage
+                        )
                     os.remove(f"{filename}.gpkg")
-                    st.success("Geodatabase successfully created!")
-                    st.markdown(f"Download Geodatabase: [Download]({filename}.zip)")         
+            elif secondOption=='Geodatabase':
+                    # to convert to geodata base once convert file to Geopackage then use ogr to convert shp to geodatabase
+                    jsonfile.to_file(f"{filename}.gpkg")
+                    subprocess.call(f"ogr2ogr {filename}.gdb {filename}.gpkg")
+                    shutil.make_archive(f"{filename}.gdb", "zip", f"{filename}.gdb")
+                    with open(f"{filename}.gdb.zip","rb") as Geodatabase:
+                        st.download_button(
+                            label = 'convert file to Geodatabase ',
+                            file_name = f"{filename}.gdb.zip",
+                            data = Geodatabase
+                        )
+                    shutil.rmtree(f"{filename}.gdb")         
+                    os.remove(f"{filename}.gpkg")
+                    os.remove(f"{filename}.gdb.zip")             
 elif option=="get the shortest route":
     #get the shortest route
     inputFile = st.file_uploader("upload Your Points",type="GeoJSON")
