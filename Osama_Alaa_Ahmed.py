@@ -36,7 +36,7 @@ st.header("Wlecome to My APP, Please select the operation you wish to perform fr
 def conversionFile(jsonfile,filename):
     secondOption = st.selectbox(
             'please select the format?',
-            ('Shapefile', 'Geopakage', 'Geodatabase'))
+            ('Shapefile', 'Geopakage'))
     if secondOption=='Shapefile':
                     os.makedirs(f"{filename}-ShpFiles")
                     jsonfile.to_file(f"{filename}-ShpFiles/{filename}.shp")
