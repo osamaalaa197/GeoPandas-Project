@@ -11,6 +11,9 @@ import streamlit.components.v1 as components
 import base64
 import sys
 
+
+
+
 def folium_static(map, width=700, height=500):
     """Display folium map in Streamlit app"""
     map.add_child(folium.LatLngPopup())  # add popup to show lat-long coordinates
@@ -30,18 +33,11 @@ headers = {
 
 st.set_page_config(page_title="GeoPandas Project")
 st.header("Wlecome to My APP, Please select the operation you wish to perform from the options below..")
-option = st.selectbox(
-    'pick your choose?',
-    ('conversion file to anther format', 'get the shortest route', 'downloading the intersection, union and erase between two layers','Risk assessment'))
-if option=="conversion file to anther format":
-    inputFile = st.file_uploader("upload Your file that do you want to convert ",type="GeoJSON")
-    filename = st.text_input("Enter a name for the output file")
-    if inputFile and filename:
-            jsonfile = gpd.read_file(inputFile).to_crs('EPSG:3857')
-            secondOption = st.selectbox(
+def conversionFile(jsonfile,filename):
+    secondOption = st.selectbox(
             'please select the format?',
-            ('Shapefile', 'Geopakage'))
-            if secondOption=='Shapefile':
+            ('Shapefile', 'Geopakage', 'Geodatabase'))
+    if secondOption=='Shapefile':
                     os.makedirs(f"{filename}-ShpFiles")
                     jsonfile.to_file(f"{filename}-ShpFiles/{filename}.shp")
                     shutil.make_archive(f"{filename}-ShpFiles", "zip", f"{filename}-ShpFiles")
@@ -53,7 +49,7 @@ if option=="conversion file to anther format":
                         )
                     shutil.rmtree(f"{filename}-ShpFiles")
                     os.remove(f"{filename}-ShpFiles.zip")
-            elif secondOption=='Geopakage':
+    elif secondOption=='Geopakage':
                     jsonfile.to_file(f"{filename}.gpkg")
                     with open(f"{filename}.gpkg", "rb") as Geopakage:
                         st.download_button(
@@ -61,10 +57,44 @@ if option=="conversion file to anther format":
                             file_name = f"{filename}.gpkg",
                             data = Geopakage
                         )
-                    os.remove(f"{filename}.gpkg")     
-          
-elif option=="get the shortest route":
-    #get the shortest route
+                    os.remove(f"{filename}.gpkg")
+
+ 
+def UploadFileandConvertToCoord(massage):
+    fileupload = st.file_uploader(f'{massage}', type="GeoJSON")
+    if fileupload is not None:
+        try:
+            fileuploadwithcoord = gpd.read_file(fileupload).to_crs('EPSG:3857')
+            return fileuploadwithcoord
+        except ValueError:
+            st.error("Invalid file format. Please upload a valid GeoJSON file.")
+    else:
+        st.warning("Please upload a GeoJSON file.")
+               
+def CreateAnalysis(fristFile,secondFile,Typeofanalysis):
+    analysis = gpd.overlay(fristFile, secondFile, how=f'{Typeofanalysis}')
+    filename = st.text_input("Enter a name for the output file")
+    if filename:
+        conversionFile(analysis,filename)
+    m = leafmap.Map()
+    m.add_gdf(fristFile)
+    m.add_gdf(secondFile)
+    m.add_gdf(analysis)
+    m.to_streamlit(height=500)
+        
+                                              
+menu=["MainPage","conversion file","get the shortest route","Analysis","Risk assessment"]
+basechoice=st.sidebar.selectbox("",menu)
+if basechoice=="MainPage":
+    st.header("The app is a geographic information system (GIS) tool that has four main functions: converting files from GeoJSON to SHP or Geopackage format, finding the shortest route between two points, conducting spatial analysis such as intersection, union, and erase, and performing risk assessments. The app is designed to help users manipulate and analyze geographic data efficiently.")
+elif basechoice=="conversion file":
+    inputFile = st.file_uploader("upload Your file that do you want to convert ",type="GeoJSON")
+    filename = st.text_input("Enter a name for the output file")
+    if inputFile and filename:
+            jsonfile = gpd.read_file(inputFile).to_crs('EPSG:3857')
+            conversionFile(jsonfile,filename)
+elif basechoice=="get the shortest route":
+     #get the shortest route
     inputFile = st.file_uploader("upload Your Points",type="GeoJSON")
     if inputFile:
         file_cntent=inputFile.read()
@@ -109,61 +139,23 @@ elif option=="get the shortest route":
                 geojson = folium.GeoJson(df)
                 geojson.add_to(m)
                 folium_static(m)
-elif option=="downloading the intersection, union and erase between two layers":
-    fristFile = st.file_uploader("upload the frist file",type="GeoJSON")
-    secondFile = st.file_uploader("upload the second file",type="GeoJSON")
-    if fristFile and secondFile:
+
+elif basechoice=="Analysis":
+    fristFile=UploadFileandConvertToCoord("upload the Frist file")
+    secondFile=UploadFileandConvertToCoord("upload the Second file")
+    if fristFile is not None and not fristFile.empty and secondFile is not None and not secondFile.empty:
         choice = st.radio(
         "pick your choice",
-        ('intersection', 'Erase', 'union'))
+        ('intersection', 'difference', 'union'))
         if choice=='intersection':
-                # frist_gfile = gpd.read_file(fristFile)
-                frist_gfile = gpd.read_file(fristFile).to_crs('EPSG:3857')
-                # second_gfile=gpd.read_file(inputFile)
-                second_gfile = gpd.read_file(secondFile).to_crs('EPSG:3857')
-                intersection = gpd.overlay(frist_gfile, second_gfile, how='intersection')
-                intersection.to_file('intersection.geojson', driver='GeoJSON')
-                with open(f"intersection.geojson", "rb") as interGeo:
-                        st.download_button(label='Download your Intersection',
-                                        data=interGeo,
-                                        file_name='intersection.geojson')
-                os.remove(f"intersection.geojson")
-                m = leafmap.Map()
-                m.add_gdf(frist_gfile)
-                m.add_gdf(second_gfile)
-                m.add_gdf(intersection)
-                m.to_streamlit(height=500)
-        elif choice=='Erase':
-                frist_gfile = gpd.read_file(fristFile).to_crs('EPSG:3857')
-                second_gfile = gpd.read_file(secondFile).to_crs('EPSG:3857')
-                erase = gpd.overlay(frist_gfile, second_gfile, how='difference')
-                erase.to_file('erase.geojson', driver='GeoJSON')
-                with open(f"erase.geojson", "rb") as Erase:
-                        st.download_button(label='Download your Erase',
-                                        data=Erase,
-                                        file_name='erase.geojson')
-                os.remove(f"erase.geojson")
-                m = leafmap.Map()
-                m.add_gdf(frist_gfile)
-                m.add_gdf(second_gfile)
-                m.add_gdf(erase)
-                m.to_streamlit(height=500)
+            CreateAnalysis(fristFile,secondFile,choice)
+        elif choice=='difference':
+            CreateAnalysis(fristFile,secondFile,choice)
+
         elif choice=='union':
-                frist_gfile = gpd.read_file(fristFile).to_crs('EPSG:3857')
-                second_gfile = gpd.read_file(secondFile).to_crs('EPSG:3857')
-                union = gpd.overlay(frist_gfile, second_gfile, how='union')
-                union.to_file('union.geojson', driver='GeoJSON')
-                with open(f"union.geojson", "rb") as unionfile:
-                        st.download_button(label='Download your union',
-                                        data=unionfile,
-                                        file_name='union.geojson')
-                os.remove(f"union.geojson")
-                m = leafmap.Map()
-                m.add_gdf(frist_gfile)
-                m.add_gdf(second_gfile)
-                m.add_gdf(union)
-                m.to_streamlit(height=500)
-elif option=="Risk assessment":
+            CreateAnalysis(fristFile,secondFile,choice)
+
+elif basechoice=="Risk assessment":
     st.header("Risk assessment")
     st.subheader("In this analysis, the first input represents the hazardous source, the second input represents the range of its risk buffer, and the third input represents the area being tested")
     risk_sources = st.file_uploader("please upload the risk sources",type="GeoJSON")
@@ -189,43 +181,3 @@ elif option=="Risk assessment":
         m.add_gdf(buffer)
         m.add_gdf(intersection)
         m.to_streamlit(height=500)
-
-    
-
-            
-
-        
-
-    
-
-
-
-
-
-
-
-        
-    
-
-
-  
-
-
-        
-
-
-
-
-
-
-
-
-
-
-            
-
-            
-            
-            
-          
-            
